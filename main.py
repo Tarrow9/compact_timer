@@ -18,8 +18,9 @@ from PyQt6.QtWidgets import (
     QScrollArea,
     QGridLayout,
 )
-from PyQt6.QtGui import QIcon, QAction
-from PyQt6.QtCore import QDateTime, QTimer
+from PyQt6.QtGui import QIcon, QAction, QFont, QFontDatabase
+from PyQt6.QtCore import Qt, QDateTime, QTimer
+import pygame
 
 from timer import TimerManager
 
@@ -27,13 +28,23 @@ from timer import TimerManager
 TIMER_FILE = "timers.json"
 CONF_FILE = "conf.json"
 ICON_FILE = ""
+FONT_FILE = ""
+FONT_SIZE = 9
+ALERT_SOUND_FILE = ""
+ALERT_VOLUME = 0.5
 
 with open(CONF_FILE, "r", encoding="utf-8") as f:
-    ICON_FILE = json.load(f).get("icon_file", "")
+    json_data = json.load(f)
+    ICON_FILE = json_data.get("icon_file", "")
+    FONT_FILE = json_data.get("font_file", "")
+    FONT_SIZE = json_data.get("font_size", 9)
+    ALERT_SOUND_FILE = json_data.get("alert_sound_file", "")
+    ALERT_VOLUME = json_data.get("alert_volume", 0.5)
 
 
 class TrayApp:
     def __init__(self):
+        pygame.mixer.init()
         self.app = QApplication(sys.argv)
         self.timer_manager = TimerManager()
         self.timer_manager.timer_finished.connect(self.on_timer_finished)
@@ -108,9 +119,18 @@ class TrayApp:
 
     def on_timer_finished(self, group_title_tuple):
         group, title = group_title_tuple
-        self.tray.showMessage(
-            group, f"{title} 타이머 완료", QSystemTrayIcon.MessageIcon.Information
-        )
+        self.alert = FloatingAlert(group, title)
+        screen = QApplication.primaryScreen().geometry()
+        x = screen.width() - self.alert.width() - 20
+        y = screen.height() - self.alert.height() - 60
+        self.alert.move(x, y)
+        try:
+            pygame.mixer.music.load(ALERT_SOUND_FILE)
+            pygame.mixer.music.set_volume(ALERT_VOLUME)
+            pygame.mixer.music.play()
+        except Exception as e:
+            print(f"[사운드 오류] {e}")
+        self.alert.show()
 
     def on_tray_activated(self, reason):
         if reason == QSystemTrayIcon.ActivationReason.DoubleClick:
@@ -375,6 +395,39 @@ class TimerInputDialog(QDialog):
             "seconds": self.sec_input.text().strip(),
         }
 
+
+class FloatingAlert(QWidget):
+    def __init__(self, group, title, parent=None):
+        super().__init__(parent)
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.Tool
+        )
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setFixedSize(220, 80)
+
+        # 배경색 및 테두리 포함 스타일
+        self.setStyleSheet("""
+            background-color: white;
+            border: 2px solid black;
+            border-radius: 4px;
+        """)
+        font_id = QFontDatabase.addApplicationFont(FONT_FILE)
+        font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
+
+        now = QDateTime.currentDateTime().toString("hh:mm:ss")
+        self.label = QLabel(f"{group}: {title} 완료\n{now}", self)
+        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.label.setFont(QFont(font_family, FONT_SIZE))
+        self.label.setGeometry(10, 10, 200, 60)
+        self.label.setStyleSheet("color: black;")
+
+        # 일정 시간 후 자동 닫기 (선택 사항)
+        QTimer.singleShot(10000, self.close)  # 10초 후 자동 닫힘
+
+    def mousePressEvent(self, event):
+        self.close()  # 클릭하면 창 닫기
 
 if __name__ == "__main__":
     app = TrayApp()

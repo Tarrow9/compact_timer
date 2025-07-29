@@ -1,4 +1,7 @@
 {
     "icon_file": "gpt_timer.png",
-    "sound_file": "alert.wav"
+    "font_file": "sample.ttf",
+    "font_size": 9,
+    "alert_sound_file": "alert.mp3",
+    "alert_volume": 0.2
 }

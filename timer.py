@@ -2,7 +2,6 @@ import os
 import json
 import pygame
 from PyQt6.QtCore import QTimer, QDateTime, QObject, pyqtSignal
-from win10toast import ToastNotifier
 
 
 TIMER_FILE = "timers.json"
@@ -23,7 +22,6 @@ class TimerManager(QObject):
         self.timers = {}  # name: QTimer
         self.ends = {}  # name: QDateTime
         pygame.mixer.init()
-        self.notifier = ToastNotifier()
 
     def start_timer(self, group, title, minutes, seconds):
         total_seconds = int(minutes) * 60 + int(seconds)

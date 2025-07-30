@@ -1,6 +1,6 @@
 {
-    "icon_file": "gpt_timer.png",
-    "font_file": "sample.ttf",
+    "icon_file": "gpt_timer.ico",
+    "font_file": "",
     "font_size": 9,
     "alert_sound_file": "alert.mp3",
     "alert_volume": 0.2

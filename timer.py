@@ -6,10 +6,6 @@ from PyQt6.QtCore import QTimer, QDateTime, QObject, pyqtSignal
 
 TIMER_FILE = "timers.json"
 CONF_FILE = "conf.json"
-ALARM_PATH = ""
-
-with open(CONF_FILE, "r", encoding="utf-8") as f:
-    ALARM_PATH = json.load(f).get("sound_file", "")
 
 
 class TimerManager(QObject):
@@ -21,7 +17,6 @@ class TimerManager(QObject):
         super().__init__(parent)
         self.timers = {}  # name: QTimer
         self.ends = {}  # name: QDateTime
-        pygame.mixer.init()
 
     def start_timer(self, group, title, minutes, seconds):
         total_seconds = int(minutes) * 60 + int(seconds)
@@ -55,7 +50,6 @@ class TimerManager(QObject):
     def _complete(self, group_title_tuple):
         group, title = group_title_tuple
         self.stop_timer((group, title))
-        self._play_sound()
         self.timer_finished.emit((group, title))
 
     def stop_timer(self, group_title_tuple):
@@ -66,28 +60,3 @@ class TimerManager(QObject):
             del self.timers[(group, title)]
         if (group, title) in self.ends:
             del self.ends[(group, title)]
-
-    def remaining_time(self, group_title_tuple):
-        group, title = group_title_tuple
-        """남은 시간을 초 단위로 반환 (없으면 None)"""
-        if (group, title) in self.ends:
-            now = QDateTime.currentDateTime()
-            return max(0, now.secsTo(self.ends[(group, title)]))
-        return None
-
-    def _play_sound(self):
-        try:
-            pygame.mixer.music.load(ALARM_PATH)
-            pygame.mixer.music.play()
-        except Exception as e:
-            print(f"[사운드 오류] {e}")
-
-    def load_timers(self):
-        if os.path.exists(TIMER_FILE):
-            with open(TIMER_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        return {}
-
-    def save_timers(self, timers):
-        with open(TIMER_FILE, "w", encoding="utf-8") as f:
-            json.dump(timers, f, ensure_ascii=False, indent=2)

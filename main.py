@@ -227,7 +227,6 @@ class TrayApp:
             "minutes": int(data["minutes"]),
             "seconds": int(data["seconds"]),
         }
-        print(timers)
         if data.get("hotkey"):
             if data["hotkey"] in self.hotkey_list:
                 QMessageBox.warning(

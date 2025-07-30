@@ -1,12 +1,4 @@
-import os
-import json
-import pygame
 from PyQt6.QtCore import QTimer, QDateTime, QObject, pyqtSignal
-
-
-TIMER_FILE = "timers.json"
-CONF_FILE = "conf.json"
-
 
 class TimerManager(QObject):
     # 타이머 종료 시 (이름, 메시지, 남은 초)

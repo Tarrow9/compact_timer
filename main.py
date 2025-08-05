@@ -25,6 +25,7 @@ from PyQt6.QtGui import QIcon, QAction, QFont, QFontDatabase
 from PyQt6.QtCore import Qt, QDateTime, QTimer, QObject, pyqtSignal
 
 from timer import TimerManager
+from singleton import SingleInstance
 
 
 TIMER_FILE = "timers.json"
@@ -636,5 +637,12 @@ class TimerDeleteDialog(QDialog):
 
 
 if __name__ == "__main__":
-    app = TrayApp()
-    app.run()
+    lock_path = os.path.join(os.path.expanduser("~"), ".compact_timer.lock")
+    instance = SingleInstance(lock_path)
+    if instance.already_running():
+        sys.exit(0)
+    try:
+        app = TrayApp()
+        app.run()
+    finally:
+        instance.cleanup()

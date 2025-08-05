@@ -154,6 +154,7 @@ class TrayApp:
         grid.addWidget(QLabel("<b>그룹</b>"), 0, 0)
         grid.addWidget(QLabel("<b>제목</b>"), 0, 1)
         grid.addWidget(QLabel("<b>남은 시간</b>"), 0, 2)
+        grid.addWidget(QLabel("<b>삭제</b>"), 0, 3)
 
         self.grid = grid
         self.timer_row_counter = 1
@@ -290,6 +291,23 @@ class TrayApp:
 
         self.trigger_timer(group, title, minutes, seconds)
 
+    def delete_active_timer(self, group, title, row_number):
+        # 1. 타이머 정지
+        self.timer_manager.stop_timer((group, title))
+
+        # 2. 타이머 창 UI에서 제거
+        label = self.timer_labels.pop((group, title), None)
+        if label:
+            label.deleteLater()
+
+        # 3. 레이아웃에서 나머지 그룹/제목 라벨도 제거
+        for col in range(4):
+            item = self.grid.itemAtPosition(row_number, col)
+            if item and item.widget():
+                item.widget().deleteLater()
+
+        print(f"[삭제됨] 실행 중인 타이머: {group} / {title}")
+
     # 쇼윈도
     def show_active_timers(self):
         if hasattr(self, "timer_window") and self.timer_window is not None:
@@ -318,6 +336,7 @@ class TrayApp:
         self.grid.addWidget(QLabel("<b>그룹</b>"), 0, 0)
         self.grid.addWidget(QLabel("<b>제목</b>"), 0, 1)
         self.grid.addWidget(QLabel("<b>남은 시간</b>"), 0, 2)
+        self.grid.addWidget(QLabel("<b>삭제</b>"), 0, 3)
 
         self.timer_labels = {}  # (group, title): QLabel 매핑
 
@@ -335,6 +354,11 @@ class TrayApp:
             label = QLabel()
             self.timer_labels[(group, title)] = label
             self.grid.addWidget(label, self.timer_row_counter, 2)
+            
+            del_btn = QPushButton("🗑")
+            del_btn.setFixedWidth(30)
+            del_btn.clicked.connect(partial(self.delete_active_timer, group, title, self.timer_row_counter))
+            self.grid.addWidget(del_btn, self.timer_row_counter, 3)
 
             self.timer_row_counter += 1
 
@@ -372,10 +396,14 @@ class TrayApp:
         label_group = QLabel(group)
         label_title = QLabel(title)
         label_time = QLabel("계산 중...")
+        del_btn = QPushButton("🗑")
+        del_btn.setFixedWidth(30)
+        del_btn.clicked.connect(partial(self.delete_active_timer, group, title, self.timer_row_counter))
 
         self.grid.addWidget(label_group, self.timer_row_counter, 0)
         self.grid.addWidget(label_title, self.timer_row_counter, 1)
         self.grid.addWidget(label_time, self.timer_row_counter, 2)
+        self.grid.addWidget(del_btn, self.timer_row_counter, 3)
 
         self.timer_labels[(group, title)] = label_time
         self.timer_row_counter += 1

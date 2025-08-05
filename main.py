@@ -91,6 +91,10 @@ class TrayApp:
         self.build_timer_menu()
         self.menu.addMenu(self.action_saved_timer_menu)
 
+        self.action_delete_timer = QAction("🗑 타이머 삭제", self.menu)
+        self.action_delete_timer.triggered.connect(self.show_delete_dialog)
+        self.menu.addAction(self.action_delete_timer)
+
         self.menu.addSeparator()
 
         self.action_quit = QAction("❌ 종료", self.menu)
@@ -392,6 +396,11 @@ class TrayApp:
                 m, s = divmod(remaining, 60)
                 label.setText(f"{m}분 {s}초 남음")
 
+    def show_delete_dialog(self):
+        dialog = TimerDeleteDialog(self)
+        dialog.exec()
+        self.build_timer_menu()  # 삭제 후 메뉴 다시 빌드
+
     # 이벤트 핸들러
     def _handle_timer_window_closed(self):
         self.timer_window = None
@@ -510,6 +519,92 @@ class FloatingAlert(QWidget):
 
     def mousePressEvent(self, event):
         self.close()  # 클릭하면 창 닫기
+
+
+class TimerDeleteDialog(QDialog):
+    def __init__(self, tray_app: TrayApp):
+        super().__init__(tray_app.root)
+        self.setWindowTitle("🗑 타이머 삭제")
+        self.setMinimumWidth(400)
+        self.tray_app = tray_app
+
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+
+        self.scroll = QScrollArea()
+        self.scroll.setWidgetResizable(True)
+        layout.addWidget(self.scroll)
+
+        container = QWidget()
+        self.grid = QGridLayout()
+        container.setLayout(self.grid)
+        self.scroll.setWidget(container)
+
+        self.grid.addWidget(QLabel("<b>그룹</b>"), 0, 0)
+        self.grid.addWidget(QLabel("<b>제목</b>"), 0, 1)
+        self.grid.addWidget(QLabel("<b>삭제</b>"), 0, 2)
+
+        self.timers = self._load_timers()
+        self._populate_grid()
+
+    def _load_timers(self):
+        if not os.path.exists(TIMER_FILE):
+            return {}
+        with open(TIMER_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    def _populate_grid(self):
+        row = 1
+        for group, titles in self.timers.items():
+            for title in titles:
+                self.grid.addWidget(QLabel(group), row, 0)
+                self.grid.addWidget(QLabel(title), row, 1)
+                del_btn = QPushButton("삭제")
+                del_btn.clicked.connect(partial(self.delete_timer, group, title))
+                self.grid.addWidget(del_btn, row, 2)
+                row += 1
+
+    def delete_timer(self, group, title):
+        confirm = QMessageBox.question(
+            self,
+            "확인",
+            f"'{group} > {title}' 타이머를 삭제하시겠습니까?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if confirm == QMessageBox.StandardButton.Yes:
+            self.tray_app.hotkey_list.remove(self.timers[group][title]["hotkey"])
+            del self.timers[group][title]
+            if not self.timers[group]:
+                del self.timers[group]
+
+            with open(TIMER_FILE, "w", encoding="utf-8") as f:
+                json.dump(self.timers, f, ensure_ascii=False, indent=2)
+
+            QMessageBox.information(self, "삭제 완료", f"{group} > {title} 삭제됨")
+            self._refresh_ui()
+
+    def _refresh_ui(self):
+        # 기존 grid 위젯들 제거
+        for i in reversed(range(self.grid.count())):
+            item = self.grid.itemAt(i)
+            if item and item.widget():
+                item.widget().deleteLater()
+
+        # 헤더 다시 추가
+        self.grid.addWidget(QLabel("<b>그룹</b>"), 0, 0)
+        self.grid.addWidget(QLabel("<b>제목</b>"), 0, 1)
+        self.grid.addWidget(QLabel("<b>삭제</b>"), 0, 2)
+
+        # 현재 타이머 목록 기준으로 다시 표시
+        row = 1
+        for group, titles in self.timers.items():
+            for title in titles:
+                self.grid.addWidget(QLabel(group), row, 0)
+                self.grid.addWidget(QLabel(title), row, 1)
+                del_btn = QPushButton("삭제")
+                del_btn.clicked.connect(partial(self.delete_timer, group, title))
+                self.grid.addWidget(del_btn, row, 2)
+                row += 1
 
 
 if __name__ == "__main__":

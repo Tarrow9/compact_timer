@@ -601,7 +601,9 @@ class TimerDeleteDialog(QDialog):
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         if confirm == QMessageBox.StandardButton.Yes:
-            self.tray_app.hotkey_list.remove(self.timers[group][title]["hotkey"])
+            hotkey = self.timers[group][title].get("hotkey", None)
+            if hotkey:
+                self.tray_app.hotkey_list.remove(hotkey)
             del self.timers[group][title]
             if not self.timers[group]:
                 del self.timers[group]

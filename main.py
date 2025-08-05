@@ -259,6 +259,11 @@ class TrayApp:
             return
 
         data = dialog.get_data()
+        if data["minutes"] == "":
+            data["minutes"] = "0"
+        if data["seconds"] == "":
+            data["seconds"] = "0"
+
         if not data["group"]:
             QMessageBox.warning(self.root, "입력 오류", "그룹을 입력하세요.")
             return
@@ -269,7 +274,9 @@ class TrayApp:
             QMessageBox.warning(self.root, "입력 오류", "분과 초는 숫자여야 합니다.")
             return
         if data["hotkey"]:
-            QMessageBox.warning(self.root, "입력 오류", "단발성 알림은 단축키 지원이 되지 않습니다.")
+            QMessageBox.warning(
+                self.root, "입력 오류", "단발성 알림은 단축키 지원이 되지 않습니다."
+            )
             return
 
         group = data["group"]

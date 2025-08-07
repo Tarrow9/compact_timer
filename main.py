@@ -318,7 +318,7 @@ class TrayApp:
 
         self.timer_window = QDialog(self.root)
         self.timer_window.setWindowTitle("⏱ 현재 실행 중인 타이머")
-        self.timer_window.resize(300, 150)
+        self.timer_window.resize(400, 100)
 
         # 전체 레이아웃
         outer_layout = QVBoxLayout()
